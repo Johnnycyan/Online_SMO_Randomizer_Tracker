@@ -40,7 +40,10 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-wss.on('connection', (socket) => {
+wss.on('connection', (socket, req) => {
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  console.log(`[+] Client connected from ${clientIp} | total connections: ${wss.clients.size}`);
+
   let roomCode = null;
 
   socket.on('message', (raw) => {
@@ -68,10 +71,14 @@ wss.on('connection', (socket) => {
       const room = getRoom(roomCode);
       room.sockets.add(socket);
 
+      console.log(`[→] Client joined room ${roomCode} | clients in room: ${room.sockets.size} | total rooms: ${rooms.size}`);
+
       socket.send(JSON.stringify({ type: 'joined', room: roomCode }));
 
       // Send cached state immediately if we have it.
       if (room.state) {
+        const payloadSize = JSON.stringify(room.state).length;
+        console.log(`[←] Sending cached state to ${roomCode} (${payloadSize} bytes)`);
         socket.send(JSON.stringify({ type: 'state', room: roomCode, data: room.state }));
       }
       return;
@@ -80,26 +87,39 @@ wss.on('connection', (socket) => {
     if (msg.type === 'state' && roomCode && msg.room === roomCode && msg.data) {
       const room = getRoom(roomCode);
       room.state = msg.data;
+      const payloadSize = JSON.stringify(msg.data).length;
+      console.log(`[↻] State updated in room ${roomCode} (${payloadSize} bytes) | broadcasting to ${Math.max(0, room.sockets.size - 1)} other client(s)`);
       broadcast(roomCode, { type: 'state', room: roomCode, data: msg.data }, socket);
       return;
     }
   });
 
   socket.on('close', () => {
-    if (!roomCode) return;
+    if (!roomCode) {
+      console.log(`[-] Client disconnected (no room) | total connections: ${wss.clients.size}`);
+      return;
+    }
     const room = rooms.get(roomCode);
     if (room) {
       room.sockets.delete(socket);
-      if (room.sockets.size === 0) rooms.delete(roomCode);
+      const remaining = room.sockets.size;
+      if (remaining === 0) {
+        rooms.delete(roomCode);
+        console.log(`[-] Client left room ${roomCode} | room removed | total rooms: ${rooms.size}`);
+      } else {
+        console.log(`[-] Client left room ${roomCode} | clients remaining: ${remaining}`);
+      }
     }
+    console.log(`[-] Client disconnected | total connections: ${wss.clients.size}`);
   });
 
   socket.on('error', (err) => {
-    console.error('WebSocket error:', err.message);
+    console.error('[!] WebSocket error:', err.message);
   });
 });
 
 server.listen(PORT, () => {
   console.log(`SMO Randomizer Tracker sync server listening on port ${PORT}`);
   console.log(`WebSocket path: /ws`);
+  console.log(`Ready for Cloudflare Tunnel (HTTP/WSS upgrade supported)`);
 });

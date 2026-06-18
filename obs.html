@@ -190,10 +190,17 @@
 
     let currentState = null;
 
-    // ── Apply scale from URL ──────────────────────────────────────
-    function applyScale() {
+    // ── Determine effective scale ─────────────────────────────────
+    function getScale() {
       const params = new URLSearchParams(window.location.search);
-      const scale = parseFloat(params.get('scale')) || 1;
+      const urlScale = parseFloat(params.get('scale'));
+      const settingsScale = currentState && currentState.settings ? currentState.settings.overlay_scale : null;
+      return urlScale || settingsScale || 1;
+    }
+
+    // ── Apply scale to viewport ───────────────────────────────────
+    function applyScale() {
+      const scale = getScale();
       const root = document.getElementById('obs-root');
       const html = document.documentElement;
       const body = document.body;
@@ -267,6 +274,7 @@
     function updateOBS(s) {
       currentState = s || currentState;
       if (!currentState) return;
+      applyScale();
       const settings = currentState.settings || {};
 
       // Moon rows

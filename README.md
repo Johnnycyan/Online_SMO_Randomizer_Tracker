@@ -57,7 +57,7 @@ npm start
 5. Set width **315**, height **450**.
 6. The overlay background is transparent — no chroma key needed.
 
-To make the overlay larger, add `&scale=1.5` (or any value) to the URL and multiply the Browser Source size by that scale. For example, `scale=1.5` uses **473** × **675**.
+To make the overlay larger, change **OBS Overlay Scale** in Settings. The sync section shows the calculated width and height to paste into OBS, and the scale is synced to any already-open overlays.
 
 ## How Sync Works
 

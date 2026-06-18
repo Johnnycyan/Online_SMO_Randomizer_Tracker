@@ -269,9 +269,16 @@ h1 {
 #sync-url-row button {
   width: auto;
   flex-shrink: 0;
+  padding: 0 10px;
 }
 
 #sync-status {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+#sync-size-row {
   font-size: 0.85rem;
   color: var(--text-dim);
   text-align: center;
